@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple
 
 from pydantic_ai import RunContext
 
+from gsuid_core.logger import logger
 from gsuid_core.ai_core.models import ToolContext
 from gsuid_core.ai_core.register import ai_tools
 
@@ -79,22 +80,23 @@ def _matrix_index() -> List[Dict]:
     return items
 
 
-@ai_tools(category="common")
+@ai_tools(category="self")
 async def get_current_period_wuwa(
     ctx: RunContext[ToolContext],
     mode: str = "all",
 ) -> str:
+    logger.info(f"🛠️ [鸣潮-Tools] get_current_period_wuwa 入口 mode={mode!r}")
     """查询鸣潮当期玩法概况：逆境深塔 / 冥歌海墟 / 全息矩阵。
 
     用于回答「当期深塔什么样」「现在矩阵推荐谁」「这期海墟 buff」等。
     期数优先来自每期 JSON 的 Begin/End 字段（tower/slash），matrix 无日期字段则走 cycle 推算。
-    详细配置建议再调 search_knowledge 拿 ww_tower_N / ww_slash_N / ww_matrix_N 完整 KP。
+    详细配置建议再调 search_wuwa_kb 拿 ww_tower_N / ww_slash_N / ww_matrix_N 完整 KP。
 
     Args:
         mode: 可选 tower / slash / matrix / all，默认 all 三个都返回。
 
     Returns:
-        当期期数 + 起止日期（如有）+ 跟进 search_knowledge 查询建议。
+        当期期数 + 起止日期（如有）+ 跟进 search_wuwa_kb 查询建议。
     """
     from ...wutheringwaves_abyss.period import (
         get_tower_period_number,
@@ -122,7 +124,7 @@ async def get_current_period_wuwa(
             t = get_tower_period_number()
             lines.append(f"## 逆境深塔 第 {t} 期")
             lines.append("- 起止日期：JSON 未含当期，回退 cycle 推算")
-        lines.append(f"- 完整数据: search_knowledge('鸣潮深塔第{t}期') → ww_tower_{t} KP")
+        lines.append(f"- 完整数据: search_wuwa_kb('鸣潮深塔第{t}期') → ww_tower_{t} KP")
     if want in ("all", "slash"):
         if lines:
             lines.append("")
@@ -142,7 +144,7 @@ async def get_current_period_wuwa(
             s = get_slash_period_number()
             lines.append(f"## 冥歌海墟 第 {s} 期")
             lines.append("- 起止日期：JSON 未含当期，回退 cycle 推算")
-        lines.append(f"- 本期 Buff: search_knowledge('鸣潮海墟第{s}期') → ww_slash_{s}")
+        lines.append(f"- 本期 Buff: search_wuwa_kb('鸣潮海墟第{s}期') → ww_slash_{s}")
     if want in ("all", "matrix"):
         if lines:
             lines.append("")
@@ -155,10 +157,16 @@ async def get_current_period_wuwa(
         if end_ver:
             lines.append(f"- 截止版本：{end_ver}（JSON 不含精确日期，需以游戏公告为准）")
         lines.append("- 玩家口中的「矩阵」一般特指当期奇点扩张关卡")
-        lines.append(f"- 完整数据: search_knowledge('鸣潮矩阵第{m}期') → ww_matrix_{m}")
+        lines.append(f"- 完整数据: search_wuwa_kb('鸣潮矩阵第{m}期') → ww_matrix_{m}")
     if not lines:
-        return f"未知 mode='{mode}'，可选: tower / slash / matrix / all"
-    return "\n".join(lines)
+        result = f"未知 mode='{mode}'，可选: tower / slash / matrix / all"
+        logger.warning(f"🛠️ [鸣潮-Tools] get_current_period_wuwa 出口 (未知 mode): {result}")
+        return result
+    result = "\n".join(lines)
+    logger.info(
+        f"🛠️ [鸣潮-Tools] get_current_period_wuwa 出口 mode={mode!r} len={len(result)} 行={len(lines)}"
+    )
+    return result
 
 
 def get_tower_index() -> List[Dict]:

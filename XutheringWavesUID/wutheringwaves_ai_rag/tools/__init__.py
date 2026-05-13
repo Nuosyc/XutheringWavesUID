@@ -5,6 +5,7 @@
 """
 
 from . import catalog as _catalog  # noqa: F401
+from . import kb as _kb            # noqa: F401
 from . import monster as _monster  # noqa: F401
 from . import period as _period    # noqa: F401
 from . import user as _user        # noqa: F401

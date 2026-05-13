@@ -63,11 +63,12 @@ def _score_rating(score: float) -> str:
 
 # ─── get_user_wuwa_uids ───────────────────────────────
 
-@ai_tools(category="common")
+@ai_tools(category="self")
 async def get_user_wuwa_uids(
     ctx: RunContext[ToolContext],
     target_user_id: Optional[str] = None,
 ) -> str:
+    logger.info(f"🛠️ [鸣潮-Tools] get_user_wuwa_uids 入口 target_user_id={target_user_id!r}")
     """查询用户已绑定的全部鸣潮 UID 列表（与战双等其它游戏 UID 区分）。
 
     用于回答「我绑定了哪些 UID / 我有几个鸣潮号 / 我当前默认 UID 是多少」。
@@ -99,12 +100,15 @@ async def get_user_wuwa_uids(
 
 # ─── get_user_wuwa_char_list ──────────────────────────
 
-@ai_tools(category="common")
+@ai_tools(category="self")
 async def get_user_wuwa_char_list(
     ctx: RunContext[ToolContext],
     uid: Optional[str] = None,
     target_user_id: Optional[str] = None,
 ) -> str:
+    logger.info(
+        f"🛠️ [鸣潮-Tools] get_user_wuwa_char_list 入口 uid={uid!r} target_user_id={target_user_id!r}"
+    )
     """查询某 UID 的鸣潮角色列表（已在展柜或绑定 cookie 拉取过），含等级/共鸣链/武器/精炼。
 
     数据来自 PLAYER_PATH/<uid>/rawData.json（XW 缓存）。
@@ -152,12 +156,15 @@ async def get_user_wuwa_char_list(
 
 # ─── get_user_wuwa_char_detail ────────────────────────
 
-@ai_tools(category="common")
+@ai_tools(category="self")
 async def get_user_wuwa_char_detail(
     ctx: RunContext[ToolContext],
     char_name: str,
     uid: Optional[str] = None,
 ) -> str:
+    logger.info(
+        f"🛠️ [鸣潮-Tools] get_user_wuwa_char_detail 入口 char_name={char_name!r} uid={uid!r}"
+    )
     """查询某 UID 某角色的完整面板详情（等级 / 共鸣链 / 武器精炼 / 技能等级 / 装备的 5 个声骸）。
 
     用于回答「我的长离是几链 / 长离武器是啥 / 长离技能等级」。
@@ -227,12 +234,15 @@ async def get_user_wuwa_char_detail(
 
 # ─── get_user_wuwa_char_scores ────────────────────────
 
-@ai_tools(category="common")
+@ai_tools(category="self")
 async def get_user_wuwa_char_scores(
     ctx: RunContext[ToolContext],
     uid: Optional[str] = None,
     top_n: int = 20,
 ) -> str:
+    logger.info(
+        f"🛠️ [鸣潮-Tools] get_user_wuwa_char_scores 入口 uid={uid!r} top_n={top_n}"
+    )
     """查询某 UID 的练度评分排行（来自 charListData.json，XW 评分缓存）。
 
     数据来源 `PLAYER_PATH/<uid>/charListData.json`，格式 `{roleId: score}`。
@@ -278,11 +288,12 @@ async def get_user_wuwa_char_scores(
 
 # ─── get_user_wuwa_baseinfo ───────────────────────────
 
-@ai_tools(category="common")
+@ai_tools(category="self")
 async def get_user_wuwa_baseinfo(
     ctx: RunContext[ToolContext],
     uid: Optional[str] = None,
 ) -> str:
+    logger.info(f"🛠️ [鸣潮-Tools] get_user_wuwa_baseinfo 入口 uid={uid!r}")
     """查询某 UID 的鸣潮账号基本信息（漂泊者等级 / 世界等级 / 活跃天数 / 成就 / 角色数 / 奇藏箱数 / 周本进度等）。
 
     数据源 `PLAYER_PATH/<uid>/baseInfo.json`，由 `卡片` 命令拉取后落盘。

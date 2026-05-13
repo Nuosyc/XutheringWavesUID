@@ -181,13 +181,8 @@ async def upload_matrix_record(
     if not mode.teams:
         return
 
-    # 按分数降序，只取最高分和次高分两队上传
-    sorted_teams = sorted(
-        enumerate(mode.teams), key=lambda x: x[1].score, reverse=True
-    )[:2]
-
     teams = []
-    for idx, team in sorted_teams:
+    for idx, team in enumerate(mode.teams):
         buff = team.buffs[0] if team.buffs else None
         char_ids = char_ids_map.get((mode.modeId, idx), [])
         teams.append(
@@ -197,9 +192,6 @@ async def upload_matrix_record(
                 buff_id=buff.buffId if buff else 0,
                 role_icons=team.roleIcons,
                 char_ids=char_ids,
-                pass_boss=team.passBoss,
-                boss_count=team.bossCount,
-                round=team.round,
                 score=team.score,
             )
         )

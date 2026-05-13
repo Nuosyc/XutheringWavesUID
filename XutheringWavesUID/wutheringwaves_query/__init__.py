@@ -6,12 +6,14 @@ from gsuid_core.models import Event
 
 from ..utils.button import WavesButton
 from .draw_char_hold_rate import get_char_hold_rate_img
+from .draw_matrix_appear_rate import draw_matrix_appear_rate
 from .draw_slash_appear_rate import draw_slash_use_rate
 from .draw_tower_appear_rate import draw_tower_use_rate
 
 sv_char_hold_rate = SV("waves角色持有率")
 sv_tower_appear_rate = SV("waves深塔出场率", priority=1)
 sv_slash_appear_rate = SV("waves冥想出场率", priority=1)
+sv_matrix_appear_rate = SV("waves矩阵出场率", priority=1)
 
 
 # 角色持有率指令
@@ -117,5 +119,38 @@ async def handle_slash_appear_rate(bot: Bot, ev: Event):
         WavesButton("总使用率", "冥海总使用率"),
         WavesButton("上半出场率", "冥海出场率上半"),
         WavesButton("下半出场率", "冥海出场率下半"),
+    ]
+    await bot.send_option(img, buttons)
+
+
+# 矩阵出场率指令
+@sv_matrix_appear_rate.on_command(
+    (
+        "矩阵出场率",
+        "矩阵热门队",
+        "矩阵热门配队",
+        "矩阵高分队",
+        "矩阵高分配队",
+        "矩阵配队",
+    ),
+    block=True,
+    to_ai="""查询本期矩阵 (奇点扩张) 队伍出场率统计图。
+
+当用户问「矩阵谁用得多 / 矩阵热门队 / 矩阵高分队 / 矩阵配队推荐」时调用。
+可选附带一个角色名/别名，只查含该角色的队伍。
+
+Args:
+    text: 可选角色名/别名（严格匹配，不模糊）。留空看全局热门/高分队。
+
+Examples:
+    矩阵热门队        → 本期全局热门 + 高分队
+    矩阵高分队 椿     → 仅含「椿」的热门 + 高分队
+""",
+)
+async def handle_matrix_appear_rate(bot: Bot, ev: Event):
+    img = await draw_matrix_appear_rate(ev)
+    buttons: List[Any] = [
+        WavesButton("矩阵热门队", "矩阵热门队"),
+        WavesButton("矩阵高分队", "矩阵高分队"),
     ]
     await bot.send_option(img, buttons)

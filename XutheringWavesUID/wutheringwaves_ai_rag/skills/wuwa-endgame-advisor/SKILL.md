@@ -73,15 +73,22 @@ description: 鸣潮·当期逆境深塔·深境区 / 冥歌海墟 / 矩阵叠兵
 
 ### Step 1 — 拉本期信息
 
-根据用户意图调用：
+先拿当期期数 + 起止时间：
 
-- 深塔（深境区）： `get_current_period_wuwa(stage="tower")`
-- 海墟（海隙 / 湍渊）： `get_current_period_wuwa(stage="slash")`
-- 矩阵叠兵： `get_current_period_wuwa(stage="matrix")`
+- 深塔（深境区）： `get_current_period_wuwa(mode="tower")`
+- 海墟（海隙 / 湍渊）： `get_current_period_wuwa(mode="slash")`
+- 矩阵叠兵： `get_current_period_wuwa(mode="matrix")`
 - 用户只说"本期挑战 / 三大挑战"，三个都拉。
 
-记录返回里：期数、起止时间、各塔/区/位的 **buff 描述**、**敌人 monster_id**、
-**位置/层级编号**。
+`get_current_period_wuwa` 只给出期数和起止时间——**详细的 buff、敌人 monster_id、
+层级编号都在对应 KP 里**，必须**再调** `search_wuwa_kb(query=...)` 取详情：
+
+- 深塔： `search_wuwa_kb(query="鸣潮深塔第N期")` → ww_tower_N
+- 海墟： `search_wuwa_kb(query="鸣潮海墟第N期")` → ww_slash_N
+- 矩阵： `search_wuwa_kb(query="鸣潮矩阵第N期")` → ww_matrix_N
+
+`search_wuwa_kb` 返回的 `content` 字段里就有完整的 buff 描述、怪物名/ID、各塔/区/位
+的具体内容。
 
 ### Step 2 — 查敌人抗性
 

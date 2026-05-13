@@ -1,3 +1,4 @@
+import time
 from typing import Dict, List, Union
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
 from ..utils.util import timed_async_cache
-from ..utils.image import get_ICON, add_footer, get_waves_bg, get_square_avatar
+from ..utils.image import GREY, get_ICON, add_footer, get_waves_bg, get_square_avatar
 from ..utils.api.wwapi import GET_SLASH_APPEAR_RATE
 from ..utils.ascension.char import get_char_model
 from ..utils.ascension.model import CharacterModel
@@ -21,6 +22,7 @@ from ..utils.fonts.waves_fonts import (
     waves_font_58,
 )
 from ..utils.resource.constant import NAME_ALIAS
+from ..wutheringwaves_abyss.period import get_slash_period_number
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
@@ -134,6 +136,18 @@ def _render_slash_use_rate(
     title_text = "#冥歌海墟出场率"
     title_bg_draw = ImageDraw.Draw(title_bg)
     title_bg_draw.text((220, 290), title_text, "white", waves_font_58, "lm")
+
+    # 期次 + 获取时间
+    period_label = f"第{get_slash_period_number()}期"
+    date_text = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    title_bg_draw.text((225, 360), period_label, GREY, waves_font_20, "lm")
+    try:
+        period_w = title_bg_draw.textlength(period_label, font=waves_font_20)
+    except Exception:
+        period_w = waves_font_20.getsize(period_label)[0]
+    title_bg_draw.text(
+        (225 + period_w + 16, 360), date_text, GREY, waves_font_20, "lm"
+    )
 
     # 遮罩
     char_mask = Image.open(TEXT_PATH / "char_mask.png").convert("RGBA")
