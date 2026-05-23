@@ -803,7 +803,7 @@ async def draw_char_detail_img(
             ):
                 grade = get_panel_score_grade(score_report.score)
                 if (
-                    grade in ("a", "b", "c")
+                    grade in ("b", "c")
                     and score_report.score > 40
                     and char_state.get("advice_dirty", True)
                 ):
