@@ -189,7 +189,7 @@ async def api_thumb(
     target = st.safe_target_image(type, char_id, name)
     if target is None or not target.is_file():
         raise HTTPException(404, "image not found")
-    cache = st.get_or_make_thumb(target, size)
+    cache = st.get_or_make_thumb(target, size, type)
     if cache is None:
         return FileResponse(target)
     return FileResponse(cache, media_type="image/webp", headers={"Cache-Control": "max-age=86400"})

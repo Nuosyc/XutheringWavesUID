@@ -457,8 +457,10 @@ function renderCenterBody() {
 
 function renderTile(img, isLandscape) {
   const isSelected = state.selectedImage?.name === img.name;
+  const ar = tileAspect(state.type);
   const tile = el("div", {
     class: "tile" + (isLandscape ? " is-landscape" : "") + (isSelected ? " is-selected" : ""),
+    style: ar ? `aspect-ratio:${ar}` : null,
     role: "button",
     tabindex: "0",
     "aria-label": `${img.hash_id} ${img.name}`,
@@ -658,6 +660,15 @@ const CROP_FRAME = 12;
 // 「查看面板图」只显示其中 PANEL_VIS 窗口(与后端 card_utils._PANEL_VISIBLE_BOX_LOCAL 对齐)。
 const PANEL_OUT = { w: 560, h: 1000 };
 const PANEL_VIS = { l: 60, t: 95, r: 500, b: 900 };
+// stamina/MR 卡背景容器 (对齐 stamina_card.html .container / 后端 storage._BG_DISPLAY_RATIO)
+const MR_CARD = { w: 1150, h: 850 };
+
+// 缩略图框比例 = 该类型在角色卡的实际显示区比例 (card 取 PANEL_VIS 窗口, bg 取背景容器)
+function tileAspect(type) {
+  if (type === "card") return (PANEL_VIS.r - PANEL_VIS.l) / (PANEL_VIS.b - PANEL_VIS.t);
+  if (type === "bg") return MR_CARD.w / MR_CARD.h;
+  return null;
+}
 
 // 计算「查看面板图」实际可见窗口, 返回相对"裁剪框左上角"的显示坐标(裁剪框即将来保存的图)。
 // 裁剪框尺寸变化时实时重算 → 虚线随裁剪框联动。无法计算时返回 null。

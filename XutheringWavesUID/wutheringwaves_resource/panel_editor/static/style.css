@@ -568,7 +568,7 @@ input[type="search"] {
   cursor: pointer;
   transition: transform var(--t-fast), border-color var(--t-fast);
 }
-.tile.is-landscape { aspect-ratio: 16 / 9; }
+/* 缩略图框比例由 JS tileAspect() 按显示区算出, 写在 inline style; 此处仅留非 card/bg 的默认 3/4 */
 .tile:hover {
   transform: translateY(-1px);
   border-color: var(--line-3);
