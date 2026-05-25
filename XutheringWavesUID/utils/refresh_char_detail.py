@@ -1,6 +1,5 @@
 import re
 import json
-import time
 import asyncio
 from typing import Dict, List, Union, Optional
 
@@ -8,7 +7,6 @@ import aiofiles
 
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-from gsuid_core.pool import to_process
 
 from .hint import error_reply
 from .util import get_version, hide_uid
@@ -25,7 +23,6 @@ from .char_info_utils import get_all_roleid_detail_info_int
 from .char_state import record_refresh_batch
 from .api.model import AccountBaseInfo as _AccountBaseInfo
 
-_compute_one_char_rank_proc = to_process(_compute_one_char_rank)
 _BG_TASKS: set = set()
 
 
@@ -159,25 +156,18 @@ async def send_card(
             meta["sender_avatar"] = sender_avatar
         return meta
 
-    # 综合评分丢进程池(to_process, 多核)逐角色并行算; 整个上传在后台进行, 不阻塞出图。
-    # 进程池全挂时退回内联快算(无综合评分, 服务端对空综合评分不覆盖旧值)。
+    # 全量刷新不算综合评分, 仅单角色刷新时算; 后台上传不阻塞出图
     async def _upload_rank():
         try:
-            t0 = time.perf_counter()
-            results = await asyncio.gather(
-                *(_compute_one_char_rank_proc(rd, True, True) for rd in save_data),
-                return_exceptions=True,
-            )
-            ranks = [r for r in results if isinstance(r, WavesCharRank)]
-            errs = [r for r in results if isinstance(r, BaseException)]
-            if errs:
-                logger.warning(
-                    f"[鸣潮·评分] 综合评分并行部分失败 uid={uid}: {len(errs)}/{len(results)} 示例={errs[0]!r}"
+            if len(waves_data) == 1:
+                results = await asyncio.gather(
+                    *(asyncio.to_thread(_compute_one_char_rank, rd, True, True) for rd in save_data),
+                    return_exceptions=True,
                 )
-            if ranks:
-                logger.info(
-                    f"[鸣潮·计时] uid={uid} 综合评分(进程池) 角色数={len(ranks)} 实际={time.perf_counter() - t0:.2f}s"
-                )
+                ranks = [r for r in results if isinstance(r, WavesCharRank)]
+                errs = [r for r in results if isinstance(r, BaseException)]
+                if errs:
+                    logger.warning(f"[鸣潮·评分] 综合评分计算失败 uid={uid}: {errs[0]!r}")
             else:
                 ranks = await get_waves_char_rank(uid, save_data, True, need_overall_score=False)
             if ranks:

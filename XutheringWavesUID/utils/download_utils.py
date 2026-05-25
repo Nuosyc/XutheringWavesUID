@@ -155,10 +155,6 @@ def check_file_hash(path: Path) -> bool:
 
 
 
-_WINDOWS_LOCK_ERRORS = {5, 32}
-_REPLACE_RETRY_DELAYS = (0.2, 0.5, 1.0, 2.0)
-
-
 def _is_same_file(src_file: Path, dst_file: Path) -> bool:
     if not dst_file.exists():
         return False
@@ -168,37 +164,23 @@ def _is_same_file(src_file: Path, dst_file: Path) -> bool:
         return False
 
 
-def _replace_with_retry(tmp: str, dst_file: Path, src_file: Path):
-    last_error = None
-    for index, delay in enumerate((0, *_REPLACE_RETRY_DELAYS)):
-        if delay:
-            time.sleep(delay)
+def _replace_or_skip(tmp: str, dst_file: Path, src_file: Path) -> bool:
+    try:
+        if dst_file.exists():
+            try:
+                dst_file.chmod(0o666)
+            except OSError:
+                pass
+        os.replace(tmp, dst_file)
+        return True
+    except OSError as e:
+        # 被占用/竞争(已加载的 .pyd、多进程抢复制): 跳过该文件, 不抛
+        logger.debug(f"[鸣潮] 构建文件替换跳过: {dst_file} ({e})")
         try:
-            if dst_file.exists():
-                try:
-                    dst_file.chmod(0o666)
-                except OSError:
-                    pass
-            os.replace(tmp, dst_file)
-            return True
-        except OSError as e:
-            last_error = e
-            winerror = getattr(e, "winerror", None)
-            if winerror not in _WINDOWS_LOCK_ERRORS:
-                raise
-            if _is_same_file(src_file, dst_file):
-                try:
-                    os.unlink(tmp)
-                except OSError:
-                    pass
-                return False
-            if index == len(_REPLACE_RETRY_DELAYS):
-                break
-            logger.warning(
-                f"[鸣潮] 构建文件被占用，等待后重试: {dst_file} "
-                f"(WinError {winerror})"
-            )
-    raise last_error
+            os.unlink(tmp)
+        except OSError:
+            pass
+        return False
 
 
 def _atomic_copy_tree(src, dst):
@@ -217,7 +199,7 @@ def _atomic_copy_tree(src, dst):
         os.close(fd)
         try:
             shutil.copy2(src_file, tmp)
-            if _replace_with_retry(tmp, dst_file, src_file):
+            if _replace_or_skip(tmp, dst_file, src_file):
                 updated += 1
         except Exception:
             try:
