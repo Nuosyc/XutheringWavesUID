@@ -297,10 +297,10 @@ async def check_waves_ann_state():
         return
 
     async with _ann_poll_lock:
-        await _do_ann_poll()
+        await _do_ann_poll(datas)
 
 
-async def _do_ann_poll() -> None:
+async def _do_ann_poll(datas) -> None:
     ids = get_ann_new_ids()
     new_ann_list = await waves_api.get_ann_list()
     if not new_ann_list:
