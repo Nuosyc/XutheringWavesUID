@@ -559,6 +559,26 @@ async def get_attribute_effect(name: str = "") -> Image.Image:
         return Image.open(TEXT_PATH / "attribute_effect" / "attr.png").convert("RGBA")
 
 
+def get_sonata_label(sonata_name: str) -> str:
+    """组合套装名形如 '洛2+2|沉日劫明|幽夜隐匿之帷', 显示只取 '|' 前标签。"""
+    return sonata_name.split("|", 1)[0]
+
+
+async def get_sonata_effect_image(sonata_name: str, size: int = 50) -> Image.Image:
+    """取合鸣图标; 组合套装名(含 '|')时把 '|' 后各套装图标对角错位叠成一张。"""
+    parts = sonata_name.split("|")
+    names = parts[1:] if len(parts) > 1 else parts[:1]
+    icons = [await get_attribute_effect(n) for n in names]
+    if len(icons) <= 1:
+        return icons[0].resize((size, size))
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    sub = int(size * 0.66)
+    step = (size - sub) // (len(icons) - 1)
+    for i, icon in enumerate(icons):
+        canvas.alpha_composite(icon.resize((sub, sub)), (step * i, step * i))
+    return canvas
+
+
 async def get_weapon_type(name: str = "") -> Image.Image:  # 出新武器改这里
     path = TEXT_PATH / f"weapon_type/weapon_type_{name}.png"
     if not path.exists():

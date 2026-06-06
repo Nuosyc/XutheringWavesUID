@@ -9,6 +9,7 @@ from .damage.utils import comma_separated_number
 from .char_info_utils import get_all_role_detail_info
 from .damage.abstract import DamageRankRegister, ScoreDetailRegister
 from .api.model import RoleDetailData
+from .ascension.sonata import detect_combo_sonata
 
 
 class WavesCharRank(BaseModel):
@@ -114,15 +115,9 @@ def _compute_one_char_rank(role_detail, need_expected_damage=False, need_overall
                 sonataName = ph_detail["ph_name"]
                 break
 
-        if role_detail.role.roleId == 1606:
-            roccia_part_1, roccia_part_2 = False, False
-            for ph_detail in calc.phantom_pre.get("ph_detail", []):
-                if ph_detail.get("ph_name") == "沉日劫明" and ph_detail.get("ph_num") >= 2:
-                    roccia_part_1 = True
-                if ph_detail.get("ph_name") == "幽夜隐匿之帷" and ph_detail.get("ph_num") >= 2:
-                    roccia_part_2 = True
-            if roccia_part_1 and roccia_part_2:
-                sonataName = "洛2+2"
+        combo_sonata = detect_combo_sonata(role_detail.role.roleId, calc.phantom_pre.get("ph_detail", []))
+        if combo_sonata:
+            sonataName = combo_sonata
 
     phantom_score = round(phantom_score, 2)
     return WavesCharRank(

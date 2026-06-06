@@ -32,10 +32,11 @@ from ..utils.image import (
     get_attribute,
     crop_center_img,
     get_square_weapon,
+    get_sonata_label,
     get_custom_waves_bg,
-    get_attribute_effect,
     get_role_pile_default,
     parse_bot_color_config,
+    get_sonata_effect_image,
 )
 from ..utils.api.wwapi import (
     GET_RANK_URL,
@@ -177,7 +178,7 @@ async def draw_all_rank_card(bot: Bot, ev: Event, char: str, rank_type: str, pag
 
     # 左侧标题
     text_bar_draw.text((40, 60), "上榜条件", GREY, waves_font_28, "lm")
-    text_bar_draw.text((185, 50), "1. 声骸套装5件套", SPECIAL_GOLD, waves_font_20, "lm")
+    text_bar_draw.text((185, 50), "1. 声骸套装为常规套装", SPECIAL_GOLD, waves_font_20, "lm")
     text_bar_draw.text((185, 85), "2. 登录用户&刷新面板", SPECIAL_GOLD, waves_font_20, "lm")
 
     # 备注
@@ -248,10 +249,9 @@ async def draw_all_rank_card(bot: Bot, ev: Event, char: str, rank_type: str, pag
 
         # 合鸣效果
         if rank.sonata_name:
-            effect_image = await get_attribute_effect(rank.sonata_name)
-            effect_image = effect_image.resize((50, 50))
+            effect_image = await get_sonata_effect_image(rank.sonata_name, 50)
             bar_bg.alpha_composite(effect_image, (790, 15))
-            sonata_name = rank.sonata_name
+            sonata_name = get_sonata_label(rank.sonata_name)
         else:
             sonata_name = "合鸣效果"
 

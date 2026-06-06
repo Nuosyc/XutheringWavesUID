@@ -32,6 +32,9 @@ ABYSS_TYPE_MAP = {
 
 ABYSS_TYPE_MAP_REVERSE = {
     "l4": "残响之塔 - 4层",
+    "m1": "深境之塔 - 1层",
+    "m2": "深境之塔 - 2层",
+    "m3": "深境之塔 - 3层",
     "m4": "深境之塔 - 4层",
     "r4": "回音之塔 - 4层",
 }
@@ -142,7 +145,7 @@ class OneRankResponse(BaseModel):
 
 
 class AbyssDetail(BaseModel):
-    area_type: ABYSS_TYPE
+    area_type: str  # 形如 l4/m1/m2/m3/m4/r4 (中塔按层拆分)
     area_name: str
     floor: int
     char_ids: List[int]
