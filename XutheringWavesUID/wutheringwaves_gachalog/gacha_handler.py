@@ -1,11 +1,11 @@
-import json
 import hashlib
-import time
+import json
 import random
 import string
+import time
 import traceback
-from typing import Optional
 from datetime import datetime, timedelta
+from typing import Optional
 
 import aiohttp
 from aiohttp import TCPConnector
@@ -31,7 +31,13 @@ POOL_TYPE_MAP = {
     "武器联动唤取": "11",
 }
 
-FILLER_ITEM = {"resourceId": 21040023, "qualityLevel": 3, "resourceType": "武器", "name": "源能臂铠·测肆", "count": 1}
+FILLER_ITEM = {
+    "resourceId": 21040023,
+    "qualityLevel": 3,
+    "resourceType": "武器",
+    "name": "源能臂铠·测肆",
+    "count": 1,
+}
 
 
 def _time_to_timestamp(time_str: str) -> float:
@@ -274,7 +280,10 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
                         if (i + offset < len(L_5s)) and (offset < len(O_5s)):
                             l_next = L_5s[i + offset]
                             o_next = O_5s[offset]
-                            if l_next["time"] != o_next["time"] or l_next["name"] != o_next["name"]:
+                            if (
+                                l_next["time"] != o_next["time"]
+                                or l_next["name"] != o_next["name"]
+                            ):
                                 is_match = False
                                 break
                     if is_match:
@@ -382,22 +391,22 @@ XHH_POOL_MAP = {
     "联动武器池": "11",
 }
 
-_XHH_NAME2ID: dict = {}
+_XHH_NAME_TO_ID: dict = {}
 
 
-def _load_xhh_name2id():
-    global _XHH_NAME2ID
-    if _XHH_NAME2ID:
+def _load_xhh_name_to_id():
+    global _XHH_NAME_TO_ID
+    if _XHH_NAME_TO_ID:
         return
-    p = MAP_PATH / "id2name.json"
-    if not p.exists():
-        logger.warning(f"[鸣潮·小黑盒导入] 资源映射文件不存在: {p}")
+    name_path = MAP_PATH / "id2name.json"
+    if not name_path.exists():
+        logger.warning(f"[鸣潮·小黑盒导入] 资源映射文件不存在: {name_path}")
         return
-    with open(p, encoding="utf-8") as f:
+    with open(name_path, encoding="utf-8") as f:
         id2name = json.load(f)
-    for k, v in id2name.items():
-        if v not in _XHH_NAME2ID:
-            _XHH_NAME2ID[v] = int(k)
+    for resource_id, name in id2name.items():
+        if name not in _XHH_NAME_TO_ID:
+            _XHH_NAME_TO_ID[name] = int(resource_id)
 
 
 def _xhh_ts_to_str(ts: int) -> str:
@@ -410,107 +419,120 @@ def _xhh_resource_type(rid: int) -> str:
 
 # === 小黑盒 H5 签名纯 Python 实现 ===
 
-def _xhh_md5(s: str) -> str:
-    return hashlib.md5(s.encode("utf-8")).hexdigest()
+
+def _xhh_md5_hex(text: str) -> str:
+    return hashlib.md5(text.encode("utf-8")).hexdigest()
 
 
-def _xhh_dollar(t: str, e: str, n: int) -> str:
-    r = e[:n] if n < 0 else e[:n]
-    i = ""
-    for o in range(len(t)):
-        a = ord(t[o])
-        s = a % len(r)
-        i += r[s]
-    return i
+def _xhh_pick_chars(text: str, alphabet: str, end: int) -> str:
+    chars = alphabet[:end]
+    result = ""
+    for ch in text:
+        result += chars[ord(ch) % len(chars)]
+    return result
 
 
-def _xhh_U(t: str, e: str) -> str:
-    n = ""
-    for i in range(len(t)):
-        r = ord(t[i])
-        o = r % len(e)
-        n += e[o]
-    return n
+def _xhh_pick_from_alphabet(text: str, alphabet: str) -> str:
+    result = ""
+    for ch in text:
+        result += alphabet[ord(ch) % len(alphabet)]
+    return result
 
 
-def _xhh_J(t: list) -> str:
-    e = ""
-    max_len = max(len(x) for x in t)
-    for n in range(max_len):
-        for p in t:
-            if n < len(p):
-                e += p[n]
-    return e
+def _xhh_interleave(parts: list) -> str:
+    result = ""
+    max_len = max(len(part) for part in parts)
+    for idx in range(max_len):
+        for part in parts:
+            if idx < len(part):
+                result += part[idx]
+    return result
 
 
-def _xhh_j(t: int) -> int:
-    return (255 & ((t << 1) ^ 27)) if (128 & t) else (t << 1)
+def _xhh_gf_double(value: int) -> int:
+    return (255 & ((value << 1) ^ 27)) if (128 & value) else (value << 1)
 
 
-def _xhh_B(t: int) -> int:
-    return _xhh_j(t) ^ t
+def _xhh_mix_b(value: int) -> int:
+    return _xhh_gf_double(value) ^ value
 
 
-def _xhh_N(t: int) -> int:
-    return _xhh_B(_xhh_j(t))
+def _xhh_mix_n(value: int) -> int:
+    return _xhh_mix_b(_xhh_gf_double(value))
 
 
-def _xhh_D(t: int) -> int:
-    return _xhh_N(_xhh_B(_xhh_j(t)))
+def _xhh_mix_d(value: int) -> int:
+    return _xhh_mix_n(_xhh_mix_b(_xhh_gf_double(value)))
 
 
-def _xhh_R(t: int) -> int:
-    return _xhh_D(t) ^ _xhh_N(t) ^ _xhh_B(t)
+def _xhh_mix_r(value: int) -> int:
+    return _xhh_mix_d(value) ^ _xhh_mix_n(value) ^ _xhh_mix_b(value)
 
 
-def _xhh_V(t: list) -> list:
-    e = [0, 0, 0, 0]
-    e[0] = _xhh_R(t[0]) ^ _xhh_D(t[1]) ^ _xhh_N(t[2]) ^ _xhh_B(t[3])
-    e[1] = _xhh_B(t[0]) ^ _xhh_R(t[1]) ^ _xhh_D(t[2]) ^ _xhh_N(t[3])
-    e[2] = _xhh_N(t[0]) ^ _xhh_B(t[1]) ^ _xhh_R(t[2]) ^ _xhh_D(t[3])
-    e[3] = _xhh_D(t[0]) ^ _xhh_N(t[1]) ^ _xhh_B(t[2]) ^ _xhh_R(t[3])
-    t[0] = e[0]
-    t[1] = e[1]
-    t[2] = e[2]
-    t[3] = e[3]
-    return t
+def _xhh_mix_vector(values: list) -> list:
+    mixed = [0, 0, 0, 0]
+    mixed[0] = (
+        _xhh_mix_r(values[0])
+        ^ _xhh_mix_d(values[1])
+        ^ _xhh_mix_n(values[2])
+        ^ _xhh_mix_b(values[3])
+    )
+    mixed[1] = (
+        _xhh_mix_b(values[0])
+        ^ _xhh_mix_r(values[1])
+        ^ _xhh_mix_d(values[2])
+        ^ _xhh_mix_n(values[3])
+    )
+    mixed[2] = (
+        _xhh_mix_n(values[0])
+        ^ _xhh_mix_b(values[1])
+        ^ _xhh_mix_r(values[2])
+        ^ _xhh_mix_d(values[3])
+    )
+    mixed[3] = (
+        _xhh_mix_d(values[0])
+        ^ _xhh_mix_n(values[1])
+        ^ _xhh_mix_b(values[2])
+        ^ _xhh_mix_r(values[3])
+    )
+    values[0] = mixed[0]
+    values[1] = mixed[1]
+    values[2] = mixed[2]
+    values[3] = mixed[3]
+    return values
 
 
-def _xhh_q(t: list) -> int:
-    return sum(t)
+def _xhh_hkey(path: str, ts: int, nonce: str) -> str:
+    path_parts = [part for part in path.split("/") if part]
+    sign_path = "/" + "/".join(path_parts) + "/"
+
+    alphabet = "AB45STUVWZEFGJ6CH01D237IXYPQRKLMN89"
+    time_part = _xhh_pick_chars(str(ts), alphabet, -2)
+    path_part = _xhh_pick_from_alphabet(sign_path, alphabet)
+    nonce_part = _xhh_pick_from_alphabet(nonce, alphabet)
+
+    seed = _xhh_interleave([time_part, path_part, nonce_part])[:20]
+    digest = _xhh_md5_hex(seed)
+
+    tail_values = [ord(ch) for ch in digest[-6:]]
+    mixed = _xhh_mix_vector(tail_values.copy())
+
+    suffix = str(sum(mixed) % 100)
+    if len(suffix) < 2:
+        suffix = "0" + suffix
+
+    return _xhh_pick_chars(digest[:5], alphabet, -4) + suffix
 
 
-def _xhh_W(path: str, ts: int, nonce: str) -> str:
-    path_parts = [p for p in path.split("/") if p]
-    t = "/" + "/".join(path_parts) + "/"
-
-    i = "AB45STUVWZEFGJ6CH01D237IXYPQRKLMN89"
-    r = _xhh_dollar(str(ts), i, -2)
-    o = _xhh_U(t, i)
-    a = _xhh_U(nonce, i)
-
-    s = _xhh_J([r, o, a])[:20]
-    c = _xhh_md5(s)
-
-    t_arr = [ord(ch) for ch in c[-6:]]
-    vt = _xhh_V(t_arr.copy())
-
-    u = str(_xhh_q(vt) % 100)
-    if len(u) < 2:
-        u = "0" + u
-
-    return _xhh_dollar(c[:5], i, -4) + u
-
-
-def gen_xhh_params(path: str, extra: dict = None) -> dict:
+def gen_xhh_params(path: str, extra: Optional[dict] = None) -> dict:
     if extra is None:
         extra = {}
     ts = int(time.time())
     rand_str = str(random.random())
-    nonce = _xhh_md5(str(ts) + str(int(time.time() * 1000)) + rand_str).upper()
+    nonce = _xhh_md5_hex(str(ts) + str(int(time.time() * 1000)) + rand_str).upper()
 
     params = {
-        "hkey": _xhh_W(path, ts + 1, nonce),
+        "hkey": _xhh_hkey(path, ts + 1, nonce),
         "nonce": nonce,
         "_time": ts,
         "os_type": "web",
@@ -544,7 +566,9 @@ async def fetch_xhh_data(heybox_id: str) -> Optional[dict]:
                     logger.warning(f"[鸣潮·小黑盒导入] 该用户未导入鸣潮抽卡记录")
                     return None
 
-                logger.success(f"[鸣潮·小黑盒导入] 获取小黑盒数据成功 heybox_id: {heybox_id}")
+                logger.success(
+                    f"[鸣潮·小黑盒导入] 获取小黑盒数据成功 heybox_id: {heybox_id}"
+                )
                 return resp["result"]
     except Exception as e:
         logger.error(f"[鸣潮·小黑盒导入] 获取小黑盒数据发生异常: {e}")
@@ -553,7 +577,7 @@ async def fetch_xhh_data(heybox_id: str) -> Optional[dict]:
 
 def merge_xhh_data(original_data: dict, xhh_data: dict) -> dict:
     logger.debug("[鸣潮·小黑盒导入] 开始合并抽卡记录...")
-    _load_xhh_name2id()
+    _load_xhh_name_to_id()
 
     export_info = original_data.get("info", {})
     if not export_info:
@@ -586,25 +610,31 @@ def merge_xhh_data(original_data: dict, xhh_data: dict) -> dict:
             name = rec["name"]
             ts = rec["timestamp"]
             time_str = _xhh_ts_to_str(ts)
-            rid = _XHH_NAME2ID.get(name)
+            rid = _XHH_NAME_TO_ID.get(name)
             if rid is None:
                 logger.warning(f"[鸣潮·小黑盒导入] 未找到 name->id 映射: {name}")
                 continue
-            xhh_5stars.append({
-                "time": time_str,
-                "name": name,
-                "cardPoolType": pool_code,
-                "draw_total": rec["diff"],
-                "resourceId": rid,
-                "qualityLevel": 5,
-                "resourceType": _xhh_resource_type(rid),
-                "_xhh_idx": idx,  # 记录原始 JSON 数组中的顺序 (0=最新, 1=较旧...)
-            })
+            xhh_5stars.append(
+                {
+                    "time": time_str,
+                    "name": name,
+                    "cardPoolType": pool_code,
+                    "draw_total": rec["diff"],
+                    "resourceId": rid,
+                    "qualityLevel": 5,
+                    "resourceType": _xhh_resource_type(rid),
+                    "_xhh_idx": idx,
+                }
+            )
 
     logger.debug(f"[鸣潮·小黑盒导入] 解析出五星记录 {len(xhh_5stars)} 条")
 
-    orig_types = [str(x.get("cardPoolType")) for x in original_list if x.get("cardPoolType")]
-    xhh_types = [str(x.get("cardPoolType")) for x in xhh_5stars if x.get("cardPoolType")]
+    orig_types = [
+        str(x.get("cardPoolType")) for x in original_list if x.get("cardPoolType")
+    ]
+    xhh_types = [
+        str(x.get("cardPoolType")) for x in xhh_5stars if x.get("cardPoolType")
+    ]
     all_pools = set(orig_types + xhh_types)
 
     merged_list = []
@@ -649,10 +679,15 @@ def merge_xhh_data(original_data: dict, xhh_data: dict) -> dict:
 
         # 只保留比本地最早5★更早的小黑盒5★
         if O_5s:
-            newest_local_time = _time_to_timestamp(O_5s[min(1, len(O_5s) - 1)]["time"])
-            L_5s_filtered = [x for x in L_5s if _time_to_timestamp(x["time"]) < newest_local_time]
+            newest_local_time = _time_to_timestamp(
+                O_5s[min(1, len(O_5s) - 1)]["time"]
+            )
+            L_5s_filtered = [
+                x for x in L_5s if _time_to_timestamp(x["time"]) < newest_local_time
+            ]
             logger.debug(
-                f"[鸣潮·小黑盒导入] Pool {pool_id}: 本地最早五星时间 {O_5s[min(1, len(O_5s) - 1)]['time']}, "
+                f"[鸣潮·小黑盒导入] Pool {pool_id}: "
+                f"本地最早五星时间 {O_5s[min(1, len(O_5s) - 1)]['time']}, "
                 f"过滤后保留 {len(L_5s_filtered)}/{len(L_5s)} 条小黑盒记录"
             )
             L_5s = L_5s_filtered
@@ -661,17 +696,24 @@ def merge_xhh_data(original_data: dict, xhh_data: dict) -> dict:
 
         if not O_5s:
             if not int(pool_id) > 4:
-                logger.debug(f"[鸣潮·小黑盒导入] Pool {pool_id}: 无本地五星记录，不进行合并")
+                logger.debug(
+                    f"[鸣潮·小黑盒导入] Pool {pool_id}: 无本地五星记录，不进行合并"
+                )
                 pool_merged_items.extend(O_all)
             else:
-                logger.debug(f"[鸣潮·小黑盒导入] Pool {pool_id}: 无本地五星记录，重建所有历史")
+                logger.debug(
+                    f"[鸣潮·小黑盒导入] Pool {pool_id}: 无本地五星记录，重建所有历史"
+                )
                 for cp in L_5s:
                     append_xhh_5star(pool_merged_items, cp)
                 pool_merged_items.extend(O_all)
 
         else:
             x = O_5s[0]
-            logger.debug(f"[鸣潮·小黑盒导入] Pool {pool_id}: 最早本地五星为 {x.get('name')} ({x.get('time')})")
+            logger.debug(
+                f"[鸣潮·小黑盒导入] Pool {pool_id}: "
+                f"最早本地五星为 {x.get('name')} ({x.get('time')})"
+            )
 
             match_idx = None
             for i, cand in enumerate(L_5s):
@@ -689,13 +731,19 @@ def merge_xhh_data(original_data: dict, xhh_data: dict) -> dict:
                         break
 
             if match_idx is None:
-                logger.warning(f"[鸣潮·小黑盒导入] Pool {pool_id}: 未找到五星匹配点，执行分离合并")
+                logger.warning(
+                    f"[鸣潮·小黑盒导入] Pool {pool_id}: "
+                    "未找到五星匹配点，执行分离合并"
+                )
                 for cp in L_5s:
                     append_xhh_5star(pool_merged_items, cp)
                 pool_merged_items.extend(O_all)
 
             else:
-                logger.debug(f"[鸣潮·小黑盒导入] Pool {pool_id}: 在索引 {match_idx} 处对其，重建之前历史")
+                logger.debug(
+                    f"[鸣潮·小黑盒导入] Pool {pool_id}: "
+                    f"在索引 {match_idx} 处对其，重建之前历史"
+                )
                 for i in range(match_idx):
                     append_xhh_5star(pool_merged_items, L_5s[i])
 
@@ -714,7 +762,8 @@ def merge_xhh_data(original_data: dict, xhh_data: dict) -> dict:
 
                 diff = target_count - count_existing
                 logger.debug(
-                    f"[鸣潮·小黑盒导入] Pool {pool_id}: 连接点需填充 {diff} (目标 {target_count} - 现有 {count_existing})"
+                    f"[鸣潮·小黑盒导入] Pool {pool_id}: "
+                    f"连接点需填充 {diff} (目标 {target_count} - 现有 {count_existing})"
                 )
 
                 if diff > 0:
