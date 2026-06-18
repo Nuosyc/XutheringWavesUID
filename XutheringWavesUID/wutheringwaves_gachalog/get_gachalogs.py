@@ -391,7 +391,7 @@ async def import_gachalogs(ev: Event, history_url: str, type: str, uid: str, for
     elif type == "url":
         try:
             async with aiohttp.ClientSession(connector=TCPConnector(ssl=False)) as session:
-                async with session.get(history_url) as response:
+                async with session.get(history_url, timeout=30) as response:
                     if response.status != 200:
                         return f"下载文件失败，HTTP状态码: {response.status}"
                     content_type = response.headers.get("Content-Type", "")
