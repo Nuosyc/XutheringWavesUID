@@ -223,6 +223,15 @@ def hide_uid(uid, user_pref: str = "") -> str:
     return uid_str[:2] + "*" * 4 + uid_str[-2:]
 
 
+async def resolve_hide_uid(uid, user_id: str, bot_id: str):
+    pref = await get_hide_uid_pref(uid, user_id, bot_id)
+    if pref == "on":
+        return True
+    if pref == "off":
+        return False
+    return None
+
+
 async def build_uid_masker(pairs, bot_id: str):
     """pairs: (uid, user_id) 序列; 返回同步 mask(uid, user_id), 按各自本地 pref 打码。"""
     prefs = {}

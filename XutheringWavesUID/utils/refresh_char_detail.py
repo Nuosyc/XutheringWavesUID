@@ -11,7 +11,7 @@ from gsuid_core.models import Event
 
 from .hint import error_reply
 from .at_help import safe_sender_avatar
-from .util import get_version, hide_uid, get_hide_uid_pref
+from .util import get_version, hide_uid, resolve_hide_uid
 from .api.model import RoleList, AccountBaseInfo, OwnedRoleInfoResponse
 from .waves_api import waves_api
 from .resource.constant import SPECIAL_CHAR_INT_ALL
@@ -180,13 +180,7 @@ async def send_card(
         )
         return
 
-    pref = await get_hide_uid_pref(uid, user_id, bot_id)
-    if pref == "on":
-        hide_uid_flag = True
-    elif pref == "off":
-        hide_uid_flag = False
-    else:
-        hide_uid_flag = bool(WutheringWavesConfig.get_config("HideUid").data)
+    hide_uid_flag = await resolve_hide_uid(uid, user_id, bot_id)
 
     def _build_meta(rank):
         meta = {

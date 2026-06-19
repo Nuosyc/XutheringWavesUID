@@ -245,6 +245,7 @@ class SlashDetailRequest(BaseModel):
     rank: str
     score: int
     sender_avatar: Optional[str] = ""
+    hide_uid: Optional[bool] = None
 
 
 # ------------------------------------------------------------
@@ -322,6 +323,7 @@ class MatrixDetailRequest(BaseModel):
     teamCount: int = 0  # 使用队伍数
     teams: List[MatrixTeamDetail]  # 队伍列表
     sender_avatar: Optional[str] = ""
+    hide_uid: Optional[bool] = None
 
 
 # ------------------------------------------------------------
