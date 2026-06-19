@@ -92,18 +92,10 @@ def get_matrix_total_rank_color(score: int) -> tuple:
 
 
 def get_matrix_local_rank_color(score: int) -> tuple:
-    """矩阵 群排行 分档颜色。与 detail 共用同一份阈值 + 配色"""
-    if score >= 100000:
-        return CRYSTAL_SENTINEL
-    if score >= 58000:
-        return (255, 82, 82)
-    if score >= 45000:
-        return (255, 213, 79)
-    if score >= 21000:
-        return (206, 147, 216)
-    if score >= 12000:
-        return (100, 200, 255)
-    return (138, 138, 138)
+    """矩阵 群排行 分档颜色, 与个人查询(detail) 共用同一份阈值"""
+    from ..wutheringwaves_abyss._colors import get_matrix_score_color
+
+    return get_matrix_score_color(score)
 
 
 def get_slash_total_rank_color(score: int) -> tuple:
